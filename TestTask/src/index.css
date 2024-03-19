@@ -70,4 +70,18 @@ button:focus-visible {
 canvas {
   width: 500px;
   height: 250;
+  border: 3px solid black;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }

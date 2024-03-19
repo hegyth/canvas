@@ -1,25 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import "./App.css";
-
-interface BallType {
-  id: number;
-  radius: number;
-  color: string;
-  x: number;
-  y: number;
-  xSpeed: number;
-  ySpeed: number;
-  draw(): void;
-  move(): void;
-  checkCollision(): void;
-}
-
-type Visible = "visible" | "hidden";
-
-type ColorsType = { [key: number]: string };
+import { BallType, ColorsType, Visible } from "./Types.ts";
+import { Ball } from "./Classes.ts";
 
 function App() {
-  const ref = useRef();
+  const ref = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState<Visible>("hidden");
   const [ballId, setBallId] = useState(0);
   const [colors, setColors] = useState<ColorsType>({});
@@ -37,151 +21,96 @@ function App() {
 
   useEffect(() => {
     const canvas = ref.current;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas?.getContext("2d");
 
-    class Ball implements BallType {
-      id: number;
-      radius: number;
-      color: string;
-      x: number;
-      y: number;
-      xSpeed: number;
-      ySpeed: number;
-
-      constructor() {
-        this.id = 0;
-        this.radius = Math.random() * 6 + 4;
-        this.color = "black";
-        this.x = Math.random() * 480 + this.radius;
-        this.y = Math.random() * 230 + this.radius;
-        this.xSpeed = 0;
-        this.ySpeed = 0;
-      }
-
-      draw() {
-        circle(this.x, this.y, this.radius, true, this.color);
-      }
-
-      move() {
-        this.x += this.xSpeed;
-        this.y += this.ySpeed;
-      }
-
-      checkCollision() {
-        // console.log(this.x, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
-        // console.log(this.y, 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy')
-        // console.log(this.xSpeed, 'скорость x')
-        // console.log(this.ySpeed, 'скорость y')
-        if (this.x <= this.radius || this.x >= 500 - this.radius) {
-          this.xSpeed = -(this.xSpeed - this.xSpeed * 0.2);
-          this.ySpeed = this.ySpeed - this.ySpeed * 0.2;
-        }
-        if (this.y <= this.radius || this.y >= 250 - this.radius) {
-          this.xSpeed = this.xSpeed - this.xSpeed * 0.2;
-          this.ySpeed = -(this.ySpeed - this.ySpeed * 0.2);
-        }
-      }
+    if (!canvas || !ctx) {
+      return;
     }
 
-    const circle = function (
-      x: number,
-      y: number,
-      radius: number,
-      fillCircle: boolean,
-      color: string
-    ) {
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2, false);
-      if (fillCircle) {
-        ctx.fillStyle = color;
-        ctx.fill();
-      }
-    };
-
-    const ball: BallType[] = [];
-
-    for (let i = 0; i < 10; i++) {
-      ball[i] = new Ball();
-      ball[i].id = i;
-    }
-
-    canvas.onclick = function (event: MouseEvent) {
-      const x = event.offsetX;
-      const y = event.offsetY;
-      for (let i = 0; i < ball.length; i++) {
-        if (
-          Math.abs(ball[i].x - x) <= ball[i].radius &&
-          Math.abs(ball[i].y - y) <= ball[i].radius
-        ) {
-          ball[i].xSpeed = 1;
-          ball[i].ySpeed = 1;
+    canvas.onmousedown = (event: MouseEvent) => {
+      const startX = event.offsetX;
+      const startY = event.offsetY;
+      canvas.onmouseup = (event: MouseEvent) => {
+        const lastX = event.offsetX;
+        const lastY = event.offsetY;
+        for (let i = 0; i < balls.length; i++) {
+          if (
+            Math.abs(balls[i].x - startX) <= balls[i].radius &&
+            Math.abs(balls[i].y - startY) <= balls[i].radius
+          ) {
+            balls[i].xSpeed = (startX - lastX) * 0.1;
+            balls[i].ySpeed = (startY - lastY) * 0.1;
+          }
         }
-      }
+      };
     };
 
-    canvas.oncontextmenu = function (event: MouseEvent) {
+    canvas.oncontextmenu = (event: MouseEvent) => {
       const x = event.offsetX;
       const y = event.offsetY;
-      for (let i = 0; i < ball.length; i++) {
+      for (let i = 0; i < balls.length; i++) {
         if (
-          Math.abs(ball[i].x - x) <= ball[i].radius &&
-          Math.abs(ball[i].y - y) <= ball[i].radius
+          Math.abs(balls[i].x - x) <= balls[i].radius &&
+          Math.abs(balls[i].y - y) <= balls[i].radius
         ) {
-          setBallId(ball[i].id);
+          setBallId(balls[i].id);
           setVisible("visible");
         }
       }
       return false;
     };
 
-    const pifagor = function (a: number, b: number) {
+    const balls: BallType[] = [];
+
+    for (let i = 0; i < 10; i++) {
+      balls[i] = new Ball(ctx, i);
+    }
+
+    const hypotenuse = (a: number, b: number) => {
       return Math.sqrt(a * a + b * b);
     };
 
     const tick = () => {
       ctx.clearRect(0, 0, 500, 250);
-      
+
       for (let i = 0; i < 10; i++) {
         if (colors[i]) {
-          ball[i].color = colors[i];
+          balls[i].color = colors[i];
         }
-        
-        ball[i].draw();
-        ball[i].move();
+        balls[i].draw();
+        balls[i].move();
       }
-      
+
       for (let i = 0; i < 10; i++) {
         for (let j = 0; j < 10; j++) {
           if (j > i) {
-            if (
-              pifagor(ball[i].x - ball[j].x, ball[i].y - ball[j].y) <=
-              ball[i].radius + ball[j].radius
-              ) {
-                const sinA =
-                (ball[i].x - ball[j].x) /
-                pifagor(ball[i].x - ball[j].x, ball[i].y - ball[j].y);
-                const cosA =
-                (ball[i].y - ball[j].y) /
-                pifagor(ball[i].x - ball[j].x, ball[i].y - ball[j].y);
-                
-                const vs1x = ball[i].xSpeed * cosA + ball[i].ySpeed * sinA;
-                const vs1y = -ball[i].xSpeed * sinA + ball[i].ySpeed * cosA;
-                
-                const vs2x = ball[j].xSpeed * cosA + ball[j].ySpeed * sinA;
-                const vs2y = -ball[j].xSpeed * sinA + ball[j].ySpeed * cosA;
-                
-                ball[i].xSpeed = vs1x * cosA - vs2y * sinA;
-                ball[i].ySpeed = vs1x * sinA + vs2y * cosA;
-                
-                ball[j].xSpeed = vs2x * cosA - vs1y * sinA;
-                ball[j].ySpeed = vs2x * sinA + vs1y * cosA;
-              }
+            const deltaX = balls[i].x - balls[j].x;
+            const deltaY = balls[i].y - balls[j].y;
+
+            const distance = hypotenuse(deltaX, deltaY);
+
+            if (distance <= balls[i].radius + balls[j].radius + 1) {
+              const sinA = deltaX / distance;
+              const cosA = deltaY / distance;
+
+              const vs1x = balls[i].xSpeed * cosA + balls[i].ySpeed * sinA;
+              const vs1y = -balls[i].xSpeed * sinA + balls[i].ySpeed * cosA;
+
+              const vs2x = balls[j].xSpeed * cosA + balls[j].ySpeed * sinA;
+              const vs2y = -balls[j].xSpeed * sinA + balls[j].ySpeed * cosA;
+
+              balls[i].xSpeed = vs1x * cosA - vs2y * sinA;
+              balls[i].ySpeed = vs1x * sinA + vs2y * cosA;
+
+              balls[j].xSpeed = vs2x * cosA - vs1y * sinA;
+              balls[j].ySpeed = vs2x * sinA + vs1y * cosA;
             }
           }
-          ball[i].checkCollision();
         }
-        requestAnimationFrame(tick);
-      };
+        balls[i].checkCollision();
+      }
+      requestAnimationFrame(tick);
+    };
     requestAnimationFrame(tick);
   }, []);
 
@@ -205,7 +134,3 @@ function App() {
 }
 
 export default App;
-
-// спавн кривой
-// кривые столкновения
-// выбор стороны удара
