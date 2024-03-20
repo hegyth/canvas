@@ -112,7 +112,7 @@ function App() {
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-  }, [colors]);
+  });
 
   return (
     <>
